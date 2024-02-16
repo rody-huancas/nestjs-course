@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Model, isValidObjectId } from 'mongoose';
 
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
@@ -16,16 +16,41 @@ export class PokemonService {
 
   async create(createPokemonDto: CreatePokemonDto) {
     createPokemonDto.name = createPokemonDto.name.toLocaleLowerCase();
-    const pokemon = await this.pokemonMoldel.create( createPokemonDto ); 
-    return pokemon;
+    try {
+      const pokemon = await this.pokemonMoldel.create( createPokemonDto ); 
+      return pokemon;
+    } catch (error) {
+     if(error.code === 11000){
+      throw new BadRequestException( `Pokemon exist in db ${JSON.stringify( error.keyValue )}` )
+     }
+     console.log(error)
+     throw new InternalServerErrorException( `Can't create pokemon - Check server logs` )
+    }
   }
 
   findAll() {
     return `This action returns all pokemon`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pokemon`;
+  async findOne(term: string) {
+    let pokemon: Pokemon;
+    if(!isNaN(+term)){
+      pokemon = await this.pokemonMoldel.findOne({no: term});
+    }
+
+    // MongoID
+    if( !pokemon && isValidObjectId(term) ){
+      pokemon = await this.pokemonMoldel.findById( term );
+    }
+
+    // Name
+    if( !pokemon ){
+      pokemon = await this.pokemonMoldel.findOne({ name: term.toLocaleLowerCase().trim() });
+    }
+
+    if(!pokemon) throw new NotFoundException(`Pokemon with id, name or no "${ term }" not found`);
+
+    return pokemon
   }
 
   update(id: number, updatePokemonDto: UpdatePokemonDto) {
