@@ -8,11 +8,13 @@ import { CommonModule } from './common/common.module';
 import { SeedModule } from './seed/seed.module';
 import { ConfigModule } from '@nestjs/config';
 import { EnvConfiguration } from './config/env.config';
+import { JoiValidationSchema } from './config/joi.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      load: [ EnvConfiguration ]
+      load: [ EnvConfiguration ],
+      validationSchema: JoiValidationSchema
     }), //configurar variables de entorno
     // mostrar contenido en la ruta principal: http://localhost:3000
     ServeStaticModule.forRoot({
